@@ -20,9 +20,6 @@ function DemandeStageAvecSujet() {
         nom_dept:'', 
         cinoupassport_demande:'', 
         error_list:[],
-     
-      
-     
       });
      
       const handleInput = (e) => {

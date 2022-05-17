@@ -16,10 +16,6 @@ function DemandeStage() {
   //validation erreurs
   const [error, setError] = useState([]);
 
-
-
-
-
   const [userInput, setUser] = useState({
     niveauetude: '',
     typestage: '',
@@ -39,13 +35,9 @@ function DemandeStage() {
 
   }
 
-
-
   /*  const handleChange = (e) =>{
      setFile(e.target.cv == e.target.files[0]);
     }; */
-
-
 
   const handleFile = (e) => {
     //setFiledata({ cv:e.target.files[0]});
