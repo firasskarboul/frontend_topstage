@@ -4,10 +4,29 @@ import React, { Fragment, useEffect, useState } from 'react'
 import "./Quiz.css"
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useTimer } from 'react-timer-hook';
 
+function MyTimer({ expiryTimestamp }) {
+    const {
+        seconds,
+        minutes,
+        hours
+    } = useTimer({ expiryTimestamp, onExpire: () => console.warn('onExpire called') });
+
+
+    return (
+        <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '30px' }}>
+                <span>{hours}</span>:<span>{minutes}</span>:<span>{seconds}</span>
+            </div>
+        </div>
+    );
+}
 
 function Quiz() {
-    const [duree, setDuree] = useState();
+
+    const [time, setTime] = useState(new Date())
+    const [duree, setDuree] = useState(0);
     const [loading, setLoading] = useState([])
     const [result, setResult] = useState(false)
     const navigate = useNavigate();
@@ -39,7 +58,9 @@ function Quiz() {
     }
 
     const terminate = async () => {
-        await axios.put(`/api/submit-score/${id}`)
+        await axios.put(`/api/submit-score/${id}`, {
+            score: score
+        })
             .then(res => {
                 navigate('/');
             })
@@ -53,6 +74,7 @@ function Quiz() {
         setLoading(true)
         await axios.get(`/api/randomTest/${niveauetude}`)
             .then(async res => {
+                setTime(time.setSeconds(time.getSeconds() + parseInt(res.data.test[0].duree)))
                 setTest({ test: res.data.test[0], ...test })
                 await axios.get(`/api/questions/${res.data.test[0]._id}`)
                     .then(async res => {
@@ -71,9 +93,6 @@ function Quiz() {
     useEffect(() => {
         loadTest()
         console.log(niveauetude)
-    }, [])
-    useEffect(() => {
-        setInterval(() => { setDuree(duree => duree - 1) }, 1000)
     }, [])
 
     const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -115,11 +134,18 @@ function Quiz() {
                     }}>
                         <span>Question {currentQuestion + 1}/{test.questions.length}</span>
                         <h2 style={{ marginLeft: -65 }}>{result ? 'Résultat' : 'Quiz mode'}</h2>
-
-                        <div><img style={{ width: 30, height: 25 }} src="../../dist/img/time.png" /></div>
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'center'
+                        }}>
+                            <MyTimer expiryTimestamp={time} />
+                            <img style={{ width: 30, height: 25, marginLeft: 5 }} src="../../dist/img/time.png" />
+                        </div>
                     </div>
 
                     <hr />
+
 
                     {result ? (
                         <div className='score-section' style={{
@@ -139,7 +165,6 @@ function Quiz() {
                                 marginTop: 30,
                                 marginBottom: 30,
                             }}>
-                                <p>{score}</p>
                                 {
                                     loading ?
                                         <center><p>loading...</p></center>
@@ -155,22 +180,22 @@ function Quiz() {
                                                     paddingBottom: 20,
                                                     width: '100%',
                                                     textAlign: 'center',
-                                                    backgroundColor: answersArray[test.index] == rep._id ? '#00b894' : '#0984e3',
+                                                    backgroundColor: answersArray[test.index] === rep._id ? '#00b894' : '#0984e3',
                                                     color: 'white',
                                                     fontSize: 18,
                                                     cursor: 'pointer'
                                                 }} onClick={() => {
                                                     selection.push(rep._id)
                                                     if (answersArray[test.index] == null) {
-                                                        if (rep.repcorrecte == "true")
+                                                        if (rep.repcorrecte === "true")
                                                             setScore(score + parseInt(test.questions[test.index].points))
                                                         setAnswersArray(...answersArray.push(rep._id))
                                                     }
-                                                    else if (rep.repcorrecte == "true" && answersArray[test.index] == rep._id) { }
-                                                    else if (rep.repcorrecte !== "true" && answersArray[test.index] == rep._id) { }
+                                                    else if (rep.repcorrecte === "true" && answersArray[test.index] === rep._id) { }
+                                                    else if (rep.repcorrecte !== "true" && answersArray[test.index] === rep._id) { }
                                                     else if (answersArray[test.index] !== rep._id) {
                                                         // alert("non choisi and rep correct")
-                                                        if (rep.repcorrecte == "true")
+                                                        if (rep.repcorrecte === "true")
                                                             setScore(score + parseInt(test.questions[test.index].points))
                                                         else
                                                             setScore(score - parseInt(test.questions[test.index].points))
@@ -188,14 +213,14 @@ function Quiz() {
                     )}
                     <div className='button-container' style={{ justifyContent: 'space-between' }}>
                         {
-                            test.index == 0 ?
+                            test.index === 0 ?
                                 <div />
                                 : <button onClick={previous}>Précédent</button>
                         }
                         {
-                            (test.index == test.questions.length - 1) ?
+                            (test.index === test.questions.length - 1) ?
                                 <button onClick={getResult} style={{ backgroundColor: 'green' }}>Résultat</button>
-                                : result == false ?
+                                : result === false ?
                                     <button onClick={next}>Suivant</button>
                                     :
                                     null
