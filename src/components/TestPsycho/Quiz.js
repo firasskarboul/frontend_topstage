@@ -11,7 +11,7 @@ function MyTimer({ expiryTimestamp }) {
         seconds,
         minutes,
         hours
-    } = useTimer({ expiryTimestamp, onExpire: () => console.warn('onExpire called') });
+    } = useTimer({ expiryTimestamp, onExpire: () => console.log('aaa') });
 
 
     return (
@@ -26,9 +26,13 @@ function MyTimer({ expiryTimestamp }) {
 function Quiz() {
 
     const [time, setTime] = useState(new Date())
-    const [duree, setDuree] = useState(0);
     const [loading, setLoading] = useState([])
     const [result, setResult] = useState(false)
+
+    const [currentQuestion, setCurrentQuestion] = useState(0);
+    const [score, setScore] = useState(0);
+    const [answersArray, setAnswersArray] = useState([])
+
     const navigate = useNavigate();
 
     const [test, setTest] = useState({
@@ -95,28 +99,6 @@ function Quiz() {
         console.log(niveauetude)
     }, [])
 
-    const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [score, setScore] = useState(0);
-    const [answersArray, setAnswersArray] = useState([])
-
-    // const handleAnswerOptionClick = (isCorrect) => {
-    //     if (isCorrect) {
-    //         setScore(score + 1);
-    //     }
-
-    //     const nextQuestion = currentQuestion + 1;
-    //     if (nextQuestion < test.questions.length) {
-    //         setCurrentQuestion(nextQuestion);
-    //     } else {
-    //         setShowScore(true);
-    //         console.log(test.questions?.map(item => item.id).join("|"))
-    //         console.log(test.questions)
-    //         var b = new Date()
-    //         console.log(b.toISOString().slice(0, b.toISOString().length - 5).split("T").join(" "))
-
-    //     }
-    // };
-
     return (
         <div>
             <Fragment>
@@ -145,7 +127,6 @@ function Quiz() {
                     </div>
 
                     <hr />
-
 
                     {result ? (
                         <div className='score-section' style={{
@@ -189,22 +170,20 @@ function Quiz() {
                                                     if (answersArray[test.index] == null) {
                                                         if (rep.repcorrecte === "true")
                                                             setScore(score + parseInt(test.questions[test.index].points))
-                                                        setAnswersArray(...answersArray.push(rep._id))
-                                                    }
-                                                    else if (rep.repcorrecte === "true" && answersArray[test.index] === rep._id) { }
-                                                    else if (rep.repcorrecte !== "true" && answersArray[test.index] === rep._id) { }
-                                                    else if (answersArray[test.index] !== rep._id) {
-                                                        // alert("non choisi and rep correct")
-                                                        if (rep.repcorrecte === "true")
-                                                            setScore(score + parseInt(test.questions[test.index].points))
-                                                        else
-                                                            setScore(score - parseInt(test.questions[test.index].points))
+                                                        answersArray.push(rep._id)
+                                                    } else {
+                                                        if (answersArray[test.index] !== rep._id) {
+                                                            if (rep.repcorrecte == "true")
+                                                                setScore(score + parseInt(test.questions[test.index].points))
+                                                            else if (test.questions[test.index].réponses.find(x => x._id == answersArray[test.index]).repcorrecte === "true")
+                                                                setScore(score - parseInt(test.questions[test.index].points))
+                                                        }
                                                         arr = answersArray
                                                         arr[test.index] = rep._id
                                                         setAnswersArray(arr)
                                                     }
 
-                                                }}>{rep.reptext}</a>
+                                                }}> {rep.reptext}</a>
                                             )
                                         })
                                 }
@@ -231,8 +210,8 @@ function Quiz() {
 
                     </div>
                 </div>
-            </Fragment>
-        </div>
+            </Fragment >
+        </div >
 
     )
 }

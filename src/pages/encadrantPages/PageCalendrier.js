@@ -5,6 +5,7 @@ import interaction from '@fullcalendar/interaction'; */
 
 import React from 'react'
 import FullCalendar, { formatDate } from '@fullcalendar/react'
+import { Calendar } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -18,61 +19,195 @@ import axios from 'axios';
 //export default class PageCalendrier extends React.Component {
 export default class PageCalendrier extends React.Component {
   Swal = require('sweetalert2');
-  state = {
-    weekendsVisible: true,
-    currentEvents: [],
+  constructor(props) {
+    super(props);
+    this.state = {
+      weekendsVisible: true,
+      currentEvents: [],
+      loading: false,
+      events: []
+    }
   }
+
+
+  componentDidMount() {
+    this.setState({
+      loading: true
+    })
+    axios.get(`/api/events`)
+      .then(res => {
+        this.setState({ events: res.data.all.original })
+      }).catch(err => {
+        console.log(err)
+      })
+    this.setState({
+      loading: false
+    })
+  }
+
   render() {
+    var events = []
+
+    document.addEventListener('DOMContentLoaded', async function () {
+
+      await axios.get(`/api/events`)
+      .then(res => {
+        events = res.data.all.original
+      }).catch(err => {
+        console.log(err)
+      })
+      
+      var calendarEl = document.getElementById('calendar');
+      
+      var calendar = new Calendar(calendarEl, {
+        plugins: [interactionPlugin, dayGridPlugin, timeGridPlugin, listPlugin],
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        initialView: 'dayGridMonth',
+        selectable: true,
+        selectMirror: true,
+        initialDate: '2022-05-12',
+        navLinks: true, // can click day/week names to navigate views
+        editable: true,
+        dayMaxEvents: true, // allow "more" link when too many events
+        eventClick: function (clickInfo) {
+
+          /* if ( Swal.fire(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
+            clickInfo.event.remove()
+          }  */
+          //***
+          const swalWithBootstrapButtons = Swal.mixin({
+            customClass: {
+              confirmButton: 'btn btn-success',
+              cancelButton: 'btn btn-danger'
+            },
+            buttonsStyling: false
+          })
+
+          swalWithBootstrapButtons.fire({
+            title: 'Veuillez choisir ?',
+            // text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Voir',
+            cancelButtonText: 'Supprimer!',
+            reverseButtons: false
+          }).then((result) => {
+            if (result.isConfirmed) {
+              axios.get(`api/event/${clickInfo.event.title}`).then(res => {
+                if (res.data.status === 200) {
+
+                  const formattDate_start_date = clickInfo.event.start.getFullYear() + '-' + (clickInfo.event.start.getMonth()) + '-' + clickInfo.event.start.getDate() + " " + clickInfo.event.start.getHours() + ':' + clickInfo.event.start.getMinutes() + ':' + clickInfo.event.start.getSeconds();
+                  const formattDate_end_date = clickInfo.event.end.getFullYear() + '-' + (clickInfo.event.end.getMonth() - 1) + '-' + clickInfo.event.end.getDate() + " " + clickInfo.event.end.getHours() + ':' + clickInfo.event.end.getMinutes() + ':' + clickInfo.event.end.getSeconds();
+                  const list = document.createElement('ul');
+                  const listItem1 = document.createElement('li');
+                  listItem1.innerHTML = `Titre Action:${clickInfo.event.title}`;
+                  const listItem2 = document.createElement('li');
+                  listItem2.innerHTML = `Date Début:${formattDate_start_date}`;
+                  const listItem3 = document.createElement('li');
+                  listItem3.innerHTML = `Date Fin:${formattDate_end_date}`;
+                  list.appendChild(listItem1);
+                  list.appendChild(listItem2);
+                  list.appendChild(listItem3);
+
+                  Swal.fire("Succès", list, "success");
+
+
+                }
+              })
+
+              /*  swalWithBootstrapButtons.fire(
+                'Deleted!',
+                 'Your file has been deleted.',
+                 'success' 
+               ) */
+            } else {
+              axios.delete(`api/event/${clickInfo.event.id}`).then(res => {
+                if (res.data.status === 200) {
+                  Swal.fire("Succès", res.data.message, "success");
+                  clickInfo.event.remove()
+                }
+
+              })
+              /*   swalWithBootstrapButtons.fire(
+                'Action est supprimé',
+                'error' ,
+                ) */
+            }
+          })
+
+          //*** 
+        },
+        select: function (selectInfo) {
+          let title = prompt("Veuillez entrer le titre de l'évenement")
+          let calendarApi = selectInfo.view.calendar
+          let formattDate_start_date = selectInfo.start.getFullYear() + '-' + (selectInfo.start.getMonth() + 1) + '-' + selectInfo.start.getDate() + " " + selectInfo.start.getHours() + ':' + selectInfo.start.getMinutes() + ':' + selectInfo.start.getSeconds();
+          let formattDate_end_date = selectInfo.end.getFullYear() + '-' + (selectInfo.end.getMonth() + 1) + '-' + selectInfo.end.getDate() + " " + selectInfo.end.getHours() + ':' + selectInfo.end.getMinutes() + ':' + selectInfo.end.getSeconds();
+          // alert(formattDate_start_date)
+
+          calendarApi.unselect() // clear date selection
+
+          if (title) {
+            calendarApi.addEvent({
+              id: createEventId(),
+              title,
+              start: selectInfo.startStr,
+              end: selectInfo.endStr,
+              allDay: selectInfo.allDay
+            })
+
+            const data = {
+              title: title,
+              start: selectInfo.startStr,
+              end: selectInfo.endStr,
+            }
+            axios.post('api/event', data).then(res => {
+              if (res.data.status === 200) {
+                Swal.fire("Succès", res.data.message, "success");
+
+              }
+            });
+
+          }
+
+        },
+        // eventsSet: function (events) {
+        //   alert('HI TEST')
+        //   this.setState({
+        //     currentEvents: events
+        //   })
+        // },
+        eventChange: function (info) {
+          const formattDate_start_date = info.event.start.getFullYear() + '-' + (info.event.start.getMonth()) + '-' + info.event.start.getDate() + " " + info.event.start.getHours() + ':' + info.event.start.getMinutes() + ':' + info.event.start.getSeconds();
+          const formattDate_end_date = info.event.end.getFullYear() + '-' + (info.event.end.getMonth() - 1) + '-' + info.event.end.getDate() + " " + info.event.end.getHours() + ':' + info.event.end.getMinutes() + ':' + info.event.end.getSeconds();
+          const data = {
+            title: info.event.title,
+            start: formattDate_start_date,
+            end: formattDate_end_date,
+          }
+          //alert(info.event.title + " end is now " + info.event.end.toISOString());
+          axios.put(`api/event/${info.event.title}`, data).then(res => {
+            if (res.data.status === 200) {
+              Swal.fire("Succès", res.data.message, "success");
+            }
+
+          })
+        },
+        events: events,
+      });
+
+      calendar.render();
+    });
 
     return (
 
       <div className="container">
         <div className='demo-app'>
           {this.renderSidebar()}
-          <div className='demo-app-main'>
-            <FullCalendar
-              locale={frLocale}
-              plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-              headerToolbar={{
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listDay'
-              }}
-              initialView='dayGridMonth'
-              editable={true}
-              selectable={true}
-              selectMirror={true}
-              dayMaxEvents={true}
-              weekends={this.state.weekendsVisible}
-              initialEvents={INITIAL_EVENTS} // alternatively, use the `events` setting to fetch from a feed
-
-              select={this.handleDateSelect}
-              // eventContent={renderEventContent} // custom render function
-              //eventClick={this.handleEventClick}
-              // events={[
-              //   { title: 'event 1', allDay: true, start: '2022-05-29', end: '2022-05-30' },
-              //   { title: 'event 2', allDay: true, start: '2022-05-29', end: '2022-05-30' }
-              // ]}
-              eventClick={this.handleEventClick}
-              eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
-
-              eventLimit={true}
-
-              /* you can update a remote database when these fire:
-            eventAdd={function () { }}
-
-            eventRemove={function () { }}
-            */
-              eventChange={this.eventUpdt}
-            //eventUp = {this.eventUpdt}
-
-            //eventAdd={this.handleDateSelect}
-
-            //events={this.afficherTous}
-
-
-
-            />
+          <div className='demo-app-main' id='calendar'>
           </div>
         </div>
 
@@ -84,8 +219,6 @@ export default class PageCalendrier extends React.Component {
 
 
     return (
-
-
       <div className='demo-app-sidebar'>
         {/* <div className='demo-app-sidebar-section'>
           <h2>Instructions</h2>
@@ -111,6 +244,12 @@ export default class PageCalendrier extends React.Component {
 
           {this.state.currentEvents.map(renderSidebarEvent)}
 
+          {/* {this.state.events.map(event => {
+            return(
+              <h1>{event.title}</h1>
+            )
+          })} */}
+
 
         </div>
       </div>
@@ -133,6 +272,7 @@ export default class PageCalendrier extends React.Component {
 
     })
   }
+
   eventUpdt = (info) => {
 
     const formattDate_start_date = info.event.start.getFullYear() + '-' + (info.event.start.getMonth()) + '-' + info.event.start.getDate() + " " + info.event.start.getHours() + ':' + info.event.start.getMinutes() + ':' + info.event.start.getSeconds();
@@ -161,6 +301,7 @@ export default class PageCalendrier extends React.Component {
 
   //ajouter
   handleDateSelect = (selectInfo) => {
+    alert('HI TEST')
     let title = prompt("Veuillez entrer le titre de l'évenement")
     let calendarApi = selectInfo.view.calendar
     let formattDate_start_date = selectInfo.start.getFullYear() + '-' + (selectInfo.start.getMonth() + 1) + '-' + selectInfo.start.getDate() + " " + selectInfo.start.getHours() + ':' + selectInfo.start.getMinutes() + ':' + selectInfo.start.getSeconds();
@@ -201,6 +342,7 @@ export default class PageCalendrier extends React.Component {
     }  */
     //***
 
+    alert('HI TEST')
     const swalWithBootstrapButtons = Swal.mixin({
       customClass: {
         confirmButton: 'btn btn-success',
@@ -267,6 +409,7 @@ export default class PageCalendrier extends React.Component {
 
   //Afficher Actions
   handleEvents = (events) => {
+    alert('HI TEST')
     this.setState({
       currentEvents: events
     })
@@ -350,10 +493,3 @@ function eventClick(info) {
     }
   })
 }
-
-
-
-
-
-
-
