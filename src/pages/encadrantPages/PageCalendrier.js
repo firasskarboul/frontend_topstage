@@ -174,22 +174,19 @@ export default class PageCalendrier extends React.Component {
           }
 
         },
-        // eventsSet: function (events) {
-        //   alert('HI TEST')
-        //   this.setState({
-        //     currentEvents: events
-        //   })
-        // },
+        
         eventChange: function (info) {
+          
           const formattDate_start_date = info.event.start.getFullYear() + '-' + (info.event.start.getMonth()) + '-' + info.event.start.getDate() + " " + info.event.start.getHours() + ':' + info.event.start.getMinutes() + ':' + info.event.start.getSeconds();
           const formattDate_end_date = info.event.end.getFullYear() + '-' + (info.event.end.getMonth() - 1) + '-' + info.event.end.getDate() + " " + info.event.end.getHours() + ':' + info.event.end.getMinutes() + ':' + info.event.end.getSeconds();
+          
           const data = {
             title: info.event.title,
             start: formattDate_start_date,
             end: formattDate_end_date,
           }
           //alert(info.event.title + " end is now " + info.event.end.toISOString());
-          axios.put(`api/event/${info.event.title}`, data).then(res => {
+          axios.put(`api/event/${info.event.id}`, data).then(res => {
             if (res.data.status === 200) {
               Swal.fire("Succès", res.data.message, "success");
             }
@@ -240,17 +237,7 @@ export default class PageCalendrier extends React.Component {
         </div> */}
         <div className='demo-app-sidebar-section'>
           <h2>Les Actions({this.state.currentEvents.length})</h2>
-
-
           {this.state.currentEvents.map(renderSidebarEvent)}
-
-          {/* {this.state.events.map(event => {
-            return(
-              <h1>{event.title}</h1>
-            )
-          })} */}
-
-
         </div>
       </div>
 
